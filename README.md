@@ -1,6 +1,14 @@
 # Email to Webhook Service
 
-This repository contains the infrastructure and Lambda functions for the Email to Webhook service.
+A serverless AWS solution that forwards incoming emails to webhooks. This service allows you to register domains and receive email content via webhook notifications, with support for attachments and inline images.
+
+## Key Features
+
+- **Domain Registration**: Register domains and associate them with webhook endpoints
+- **Email Forwarding**: Automatically process incoming emails and forward content to registered webhooks
+- **Attachment Handling**: Store email attachments in S3 and provide public URLs
+- **DNS Configuration**: Automated DNS verification for SES domain setup
+- **Serverless Architecture**: Built on AWS Lambda, API Gateway, S3, and SES
 
 ## Deployment Instructions
 
@@ -103,4 +111,4 @@ Feel free to connect with me:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.\*\*\*

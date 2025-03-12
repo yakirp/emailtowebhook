@@ -138,10 +138,38 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Domain is required"})
             }
 
+        # Validate domain format
+        if not is_valid_domain(user_domain):
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Invalid domain format"})
+            }
+        
+        def is_valid_domain(domain):
+            """Check if the domain has a valid format."""
+            # Basic domain validation pattern
+            # Checks for valid characters, proper length, and correct format
+            import re
+            pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+            return bool(re.match(pattern, domain))
+
         if not webhook:
             return {
                 "statusCode": 400,
                 "body": json.dumps({"error": "Webhook is required"})
+            }
+
+        # Validate webhook URL format
+        def is_valid_webhook(url):
+            """Check if the webhook URL has a valid format."""
+            import re
+            pattern = r'^https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(?::\d+)?(?:/[-\w%!$&\'()*+,;=:@/~]+)*(?:\?[-\w%!$&\'()*+,;=:@/~]*)?(?:#[-\w%!$&\'()*+,;=:@/~]*)?$'
+            return bool(re.match(pattern, url))
+            
+        if not is_valid_webhook(webhook):
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Invalid webhook URL format"})
             }
 
         # Define the bucket name and key

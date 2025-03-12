@@ -10,17 +10,16 @@ from email.parser import BytesParser
 import requests  # For HTTP POST requests
 import uuid
 import os
-
+import re
 # Initialize clients
 s3_client = boto3.client('s3')
 
 # Get domain name from environment variable
 domain_name = os.environ.get('DOMAIN_NAME', 'emailtowebhook.com')
+attachments_bucket_name = os.environ.get('ATTACHMENTS_BUCKET_NAME', 'email-attachments-bucket-3rfrd')
+webhook_bucket_name = os.environ.get('WEBHOOKS_BUCKET_NAME', 'email-webhooks-bucket-3rfrd')
 
 def lambda_handler(event, context):
-    # Define the bucket for webhook storage
-    webhook_bucket_name = 'email-webhooks-bucket-3rfrd'
-    attachments_bucket_name = 'email-attachments-bucket-3rfrd'
     # Parse the S3 event
     for record in event['Records']:
         email_bucket_name = record['s3']['bucket']['name']
@@ -42,23 +41,21 @@ def lambda_handler(event, context):
         body = ""
         attachments = []
 
-        # Extract the domain from the sender
-        sender_domain = sender.split('@')[-1]
-
         print(f"Sender: {sender}")
         print(f"Recipient: {recipient}")
         # Retrieve webhook URL for the domain from the S3 bucket
-        webhook_key = recipient.split('@')[-1]  # Assuming each domain's webhook is stored with the domain name as the key
+        # Extract domain from recipient email using regex
+        webhook_key = recipient.split('@')[-1].strip('>')
         print(f"Webhook key: {webhook_key}")
         try:
             webhook_response = s3_client.get_object(Bucket=webhook_bucket_name, Key=webhook_key)
             webhook_data = json.loads(webhook_response['Body'].read())
             webhook_url = webhook_data['webhook']
         except Exception as e:
-            print(f"Error retrieving webhook for domain {sender_domain}: {e}")
+            print(f"Error retrieving webhook for domain {webhook_key}: {e}")
             return {
                 'statusCode': 500,
-                'body': f"Webhook for domain {sender_domain} not found or error occurred."
+                'body': f"Webhook for domain {webhook_key} not found or error occurred."
             }
 
         # Extract email body and attachments

@@ -205,16 +205,16 @@ resource "aws_iam_role_policy_attachment" "verify_domain_lambda_role_attachment"
 # Lambda Function
 resource "aws_lambda_function" "verify_domain_lambda" {
   function_name = "verify-domain-lambda"
-  filename      = var.verify_lambda_file_path # Directly reference the ZIP file
+  filename      = var.verify_lambda_file_path
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.9"
   role          = aws_iam_role.verify_domain_lambda_role.arn
 
-  source_code_hash = filebase64sha256(var.verify_lambda_file_path) # Ensures Terraform updates on code change
+  source_code_hash = filebase64sha256(var.verify_lambda_file_path)
 
   environment {
     variables = {
-
+      BUCKET_NAME = var.webhooks_bucket_name
     }
   }
 
@@ -344,13 +344,12 @@ resource "aws_ses_active_receipt_rule_set" "activate_rule_set" {
 }
 
 resource "aws_s3_bucket" "email_urls_bucket" {
-  bucket = "email-webhooks-bucket-3rfrd"
+  bucket = var.webhooks_bucket_name
   acl    = "private"
 }
 
 resource "aws_s3_bucket" "email_attachments_bucket" {
-  bucket = "email-attachments-bucket-3rfrd"
-
+  bucket = var.attachments_bucket_name
 }
 
 # Configure public access block to allow public policies
@@ -396,6 +395,8 @@ resource "aws_lambda_function" "my_lambda" {
   environment {
     variables = {
       DOMAIN_NAME = var.domain_name
+      WEBHOOKS_BUCKET_NAME = var.webhooks_bucket_name
+      ATTACHMENTS_BUCKET_NAME = var.attachments_bucket_name
     }
   }
 }
@@ -432,9 +433,9 @@ resource "aws_iam_role_policy" "lambda_ses_smtp_policy" {
           "s3:PutObject"
         ]
         Resource = [
-          "arn:aws:s3:::email-webhooks-bucket-3rfrd",
-          "arn:aws:s3:::email-webhooks-bucket-3rfrd/*",
-          "arn:aws:s3:::email-attachments-bucket-3rfrd/*"
+          "arn:aws:s3:::${var.webhooks_bucket_name}",
+          "arn:aws:s3:::${var.webhooks_bucket_name}/*",
+          "arn:aws:s3:::${var.attachments_bucket_name}/*"
         ]
       },
       # CloudWatch Logs Permissions
@@ -637,7 +638,7 @@ resource "aws_route53_record" "api" {
 }
 
 resource "aws_s3_bucket_policy" "attachments_policy" {
-  bucket = "email-attachments-bucket-3rfrd" # Replace with your actual bucket name
+  bucket = var.attachments_bucket_name
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -647,7 +648,7 @@ resource "aws_s3_bucket_policy" "attachments_policy" {
         Effect    = "Allow",
         Principal = "*",
         Action    = "s3:GetObject",
-        Resource  = "arn:aws:s3:::email-attachments-bucket-3rfrd/*"
+        Resource  = "arn:aws:s3:::${var.attachments_bucket_name}/*"
       },
       {
         Sid       = "CloudFrontAccess",
@@ -656,7 +657,7 @@ resource "aws_s3_bucket_policy" "attachments_policy" {
           AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${aws_cloudfront_origin_access_identity.s3_access.id}"
         },
         Action    = "s3:GetObject",
-        Resource  = "arn:aws:s3:::email-attachments-bucket-3rfrd/attachments/*"
+        Resource  = "arn:aws:s3:::${var.attachments_bucket_name}/attachments/*"
       }
     ]
   })

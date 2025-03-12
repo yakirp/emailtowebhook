@@ -6,6 +6,8 @@ import boto3
 import json
 import secrets
 import string
+import re
+import os
 
 ses_client = boto3.client('ses')
 iam_client = boto3.client('iam')
@@ -121,6 +123,17 @@ def check_verification_status(domain):
     verification_status = response['VerificationAttributes'].get(domain, {}).get('VerificationStatus', 'NotStarted')
     return verification_status
 
+def is_valid_domain(domain):
+    """Check if the domain has a valid format."""
+    # Basic domain validation pattern
+    # Checks for valid characters, proper length, and correct format
+    pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, domain))
+
+def is_valid_webhook(webhook):
+    """Check if the webhook URL has a valid format."""
+    pattern = r'^https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(?::\d+)?(?:/[-\w%!$&\'()*+,;=:@/~]+)*(?:\?[-\w%!$&\'()*+,;=:@/~]*)?(?:#[-\w%!$&\'()*+,;=:@/~]*)?$'
+    return bool(re.match(pattern, webhook))
 
 def lambda_handler(event, context):
     try:
@@ -134,46 +147,45 @@ def lambda_handler(event, context):
 
         if not user_domain:
             return {
+                "headers": {
+                "Content-Type": "application/json"
+                },
                 "statusCode": 400,
                 "body": json.dumps({"error": "Domain is required"})
             }
-
+        
+        if not webhook:
+            return {
+                "headers": {
+                "Content-Type": "application/json"
+                },
+                "statusCode": 400,
+                "body": json.dumps({"error": "Webhook is required"})
+            }
+        
         # Validate domain format
         if not is_valid_domain(user_domain):
             return {
+                "headers": {
+                "Content-Type": "application/json"
+                },
                 "statusCode": 400,
                 "body": json.dumps({"error": "Invalid domain format"})
             }
         
-        def is_valid_domain(domain):
-            """Check if the domain has a valid format."""
-            # Basic domain validation pattern
-            # Checks for valid characters, proper length, and correct format
-            import re
-            pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-            return bool(re.match(pattern, domain))
-
-        if not webhook:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Webhook is required"})
-            }
-
-        # Validate webhook URL format
-        def is_valid_webhook(url):
-            """Check if the webhook URL has a valid format."""
-            import re
-            pattern = r'^https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(?::\d+)?(?:/[-\w%!$&\'()*+,;=:@/~]+)*(?:\?[-\w%!$&\'()*+,;=:@/~]*)?(?:#[-\w%!$&\'()*+,;=:@/~]*)?$'
-            return bool(re.match(pattern, url))
-            
+        # Validate webhook format
         if not is_valid_webhook(webhook):
             return {
+                "headers": {
+                "Content-Type": "application/json"
+                 },
                 "statusCode": 400,
                 "body": json.dumps({"error": "Invalid webhook URL format"})
             }
+        
 
         # Define the bucket name and key
-        bucket_name = 'email-webhooks-bucket-3rfrd'
+        bucket_name = os.environ.get('BUCKET_NAME', 'email-webhooks-bucket-3rfrd')
         key = user_domain
 
         # Simply update the webhook as in original code
@@ -231,6 +243,9 @@ def lambda_handler(event, context):
 
     except Exception as e:
         return {
+            "headers": {
+                "Content-Type": "application/json"
+            },
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
         }

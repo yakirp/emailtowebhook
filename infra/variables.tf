@@ -43,7 +43,7 @@ variable "domain_name" {
 variable "subdomain_name" {
   description = "The subdomain name for the service"
   default = "api"
-  type        = string
+  type    = string
 }
 
 variable "certificate_arn" {
@@ -56,6 +56,18 @@ variable "route53_zone_id" {
   description = "The Route53 zone ID for the service"
   type = string
   default = "Z06253611H11TYVLSQ89V"
+}
+
+variable "webhooks_bucket_name" {
+  description = "The name of the S3 bucket for email webhooks"
+  default     = "email-webhooks-bucket-3rfrd"
+  type        = string
+}
+
+variable "attachments_bucket_name" {
+  description = "The name of the S3 bucket for email attachments"
+  default     = "email-attachments-bucket-3rfrd"
+  type        = string
 }
 
 
